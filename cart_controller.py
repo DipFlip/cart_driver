@@ -36,7 +36,8 @@ class CartController:
         steering_gear_ratio: float = 2.0,
         steering_limit_deg: float = 60.0,
         steering_rate_deg_s: float = 100.0,
-        steering_acceleration_deg_s2: float = 250.0,
+        steering_acceleration_deg_s2: float = 400.0,
+        steering_deceleration_deg_s2: float = 250.0,
         steering_center_rate_deg_s: float = 30.0,
         steering_center_acceleration_deg_s2: float = 90.0,
         steering_motor_sign: int = -1,
@@ -58,6 +59,7 @@ class CartController:
         self.steering_limit_deg = steering_limit_deg
         self.steering_rate_deg_s = steering_rate_deg_s
         self.steering_acceleration_deg_s2 = steering_acceleration_deg_s2
+        self.steering_deceleration_deg_s2 = steering_deceleration_deg_s2
         self.steering_center_rate_deg_s = steering_center_rate_deg_s
         self.steering_center_acceleration_deg_s2 = (
             steering_center_acceleration_deg_s2
@@ -317,6 +319,15 @@ class CartController:
             return 0.0
         return self.drive_kd
 
+    def _manual_steering_ramp_rate(self, requested_velocity: float) -> float:
+        accelerating_same_direction = (
+            self._steering_velocity_deg_s * requested_velocity >= 0
+            and abs(requested_velocity) > abs(self._steering_velocity_deg_s)
+        )
+        if accelerating_same_direction:
+            return self.steering_acceleration_deg_s2
+        return self.steering_deceleration_deg_s2
+
     def close(self) -> None:
         self._stop_event.set()
         thread = self._thread
@@ -370,7 +381,15 @@ class CartController:
                         requested_steering_velocity = (
                             self._steering_input * self.steering_rate_deg_s
                         )
-                        steering_acceleration = self.steering_acceleration_deg_s2
+                        if (
+                            requested_steering_velocity
+                            * self._steering_velocity_deg_s
+                            < 0
+                        ):
+                            requested_steering_velocity = 0.0
+                        steering_acceleration = self._manual_steering_ramp_rate(
+                            requested_steering_velocity
+                        )
 
                     max_steering_step = steering_acceleration * dt
                     steering_velocity_error = (
