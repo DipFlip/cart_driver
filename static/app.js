@@ -133,6 +133,16 @@ $("centerButton").addEventListener("click", async () => {
   }
 });
 
+$("setCenterButton").addEventListener("click", async () => {
+  try {
+    const status = await api("/api/set-center", { method: "POST" });
+    render(status);
+    $("message").textContent = "Current steering position saved as straight.";
+  } catch (error) {
+    $("message").textContent = error.message;
+  }
+});
+
 function render(status) {
   state.connected = status.connected;
   state.armed = status.armed;

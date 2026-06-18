@@ -65,6 +65,16 @@ def create_app(controller: CartController | None = None) -> Flask:
         cart.center_steering()
         return jsonify(cart.status())
 
+    @app.post("/api/set-center")
+    def set_center():
+        try:
+            cart.set_center_here()
+            return jsonify(cart.status())
+        except Exception as exc:
+            status = cart.status()
+            status["error"] = str(exc)
+            return jsonify(status), 400
+
     if controller is None:
         atexit.register(cart.close)
 

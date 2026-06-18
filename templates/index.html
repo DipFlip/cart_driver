@@ -38,7 +38,10 @@
               <p class="eyebrow">MOVEMENT</p>
               <h2>WASD or hold buttons</h2>
             </div>
-            <button id="centerButton" class="text-button">Center steering</button>
+            <div class="header-actions">
+              <button id="setCenterButton" class="text-button">Set center here</button>
+              <button id="centerButton" class="text-button">Center steering</button>
+            </div>
           </div>
 
           <div class="controls" aria-label="Directional controls">
@@ -82,6 +85,6 @@
         Drive stops automatically on key release, browser disconnect, or control timeout.
       </footer>
     </main>
-    <script src="{{ url_for('static', filename='app.js', v='5') }}"></script>
+    <script src="{{ url_for('static', filename='app.js', v='6') }}"></script>
   </body>
 </html>

@@ -5,14 +5,16 @@ Browser-based WASD controller for a two-motor RobStride cart:
 - Motor 1: steering, with startup position captured as straight
 - Motor 2: rear-wheel velocity control
 - Official RobStride CH340/GD32 USB-CAN adapter on `/dev/ttyUSB0`
+- Steering uses a 2:1 motor-to-vehicle ratio: 2° motor rotation equals 1° steering.
 
 ## Safety behavior
 
 - Motors must be explicitly connected and armed.
 - W/S is dead-man drive control; releasing the key/button commands zero speed.
-- A/D slews steering at up to 225°/s within ±60° and holds the resulting angle.
-- Manual steering uses a 4,500°/s² acceleration profile.
-- Steering target lead is limited to 10° from encoder feedback.
+- A/D slews vehicle steering at up to 450°/s within ±60°.
+- Manual steering uses a 9,000°/s² vehicle-side acceleration profile.
+- **Set center here** records the current motor-1 position as vehicle-straight.
+- Steering target lead is limited to 5° vehicle-side (10° at the motor).
 - Center steering returns separately at up to 30°/s with a gentle acceleration.
 - Idle steering drops to Kp=3/Kd=0.2 and releases corrective torque inside a 0.75° deadband.
 - Idle drive uses Kp=0/Kd=0 after its speed command reaches zero.
