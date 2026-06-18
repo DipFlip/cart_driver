@@ -143,7 +143,7 @@ function render(status) {
   $("driveReadout").textContent = `${status.drive_speed_deg_s.toFixed(1)}°/s`;
   $("steeringReadout").textContent = `${status.steering_deg.toFixed(1)}°`;
   $("safetyReadout").textContent = status.armed ? "ARMED" : "DISARMED";
-  const gaugePercent = Math.max(0, Math.min(100, 50 + status.steering_deg / 60 * 100));
+  const gaugePercent = Math.max(0, Math.min(100, 50 + status.steering_deg / 120 * 100));
   $("gaugeNeedle").style.left = `${gaugePercent}%`;
   if (status.error) $("message").textContent = status.error;
 }

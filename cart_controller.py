@@ -33,9 +33,11 @@ class CartController:
         channel: str = "/dev/ttyUSB0",
         steering_id: int = 1,
         drive_id: int = 2,
-        steering_limit_deg: float = 30.0,
+        steering_limit_deg: float = 60.0,
         steering_rate_deg_s: float = 45.0,
         max_drive_speed_deg_s: float = 100.0,
+        drive_acceleration_deg_s2: float = 200.0,
+        drive_kd: float = 1.0,
         torque_limit_nm: float = 2.0,
         watchdog_seconds: float = 0.35,
     ):
@@ -43,6 +45,8 @@ class CartController:
         self.steering_limit_deg = steering_limit_deg
         self.steering_rate_deg_s = steering_rate_deg_s
         self.max_drive_speed_deg_s = max_drive_speed_deg_s
+        self.drive_acceleration_deg_s2 = drive_acceleration_deg_s2
+        self.drive_kd = drive_kd
         self.torque_limit_nm = torque_limit_nm
         self.watchdog_seconds = watchdog_seconds
 
@@ -72,6 +76,7 @@ class CartController:
         self._steering_input = 0
         self._drive_direction = 0
         self._drive_speed_setting_deg_s = max_drive_speed_deg_s
+        self._drive_command_deg_s = 0.0
         self._last_command_at = 0.0
 
     def connect(self) -> None:
@@ -127,25 +132,30 @@ class CartController:
                 )
                 self.bus.read_operation_frame(self.STEERING_NAME)
 
-                self.bus.write(self.DRIVE_NAME, ParameterType.MODE, 2)
+                # MIT mode with Kp=0 uses the velocity target and Kd as a
+                # direct, damped velocity loop. This is smoother on RS-05 than
+                # the parameter-based Mode 2 loop with generic PI gains.
+                self.bus.write(self.DRIVE_NAME, ParameterType.MODE, 0)
                 self.bus.write(
                     self.DRIVE_NAME,
                     ParameterType.TORQUE_LIMIT,
                     self.torque_limit_nm,
                 )
-                self.bus.write(
-                    self.DRIVE_NAME,
-                    ParameterType.VELOCITY_LIMIT,
-                    math.radians(self.max_drive_speed_deg_s),
-                )
-                self.bus.write(self.DRIVE_NAME, ParameterType.VELOCITY_KP, 2.0)
-                self.bus.write(self.DRIVE_NAME, ParameterType.VELOCITY_KI, 0.5)
-                self.bus.write(self.DRIVE_NAME, ParameterType.VELOCITY_TARGET, 0.0)
-                _, _, _, drive_temp = self.bus.enable(self.DRIVE_NAME)
+                drive_position, _, _, drive_temp = self.bus.enable(self.DRIVE_NAME)
                 enabled.append(self.DRIVE_NAME)
+                self.bus.write_operation_frame(
+                    self.DRIVE_NAME,
+                    drive_position,
+                    0.0,
+                    self.drive_kd,
+                    0.0,
+                    0.0,
+                )
+                self.bus.read_operation_frame(self.DRIVE_NAME)
 
                 now = time.monotonic()
                 self._drive_direction = 0
+                self._drive_command_deg_s = 0.0
                 self._steering_input = 0
                 self._last_command_at = now
                 self._status.armed = True
@@ -176,7 +186,10 @@ class CartController:
             return
         if self._status.armed:
             try:
-                self.bus.write(self.DRIVE_NAME, ParameterType.VELOCITY_TARGET, 0.0)
+                self.bus.write_operation_frame(
+                    self.DRIVE_NAME, 0.0, 0.0, self.drive_kd, 0.0, 0.0
+                )
+                self.bus.read_operation_frame(self.DRIVE_NAME)
             except Exception:
                 pass
             for name in (self.DRIVE_NAME, self.STEERING_NAME):
@@ -187,6 +200,7 @@ class CartController:
         self._status.armed = False
         self._status.drive_speed_deg_s = 0.0
         self._status.drive_target_deg_s = 0.0
+        self._drive_command_deg_s = 0.0
 
     def set_controls(
         self,
@@ -267,21 +281,30 @@ class CartController:
                         self.bus.read_operation_frame(self.STEERING_NAME)
                     )
 
-                    drive_target_deg_s = (
+                    requested_drive_deg_s = (
                         self._drive_direction * self._drive_speed_setting_deg_s
                     )
-                    drive_status = self.bus.write(
-                        self.DRIVE_NAME,
-                        ParameterType.VELOCITY_TARGET,
-                        math.radians(drive_target_deg_s),
+                    max_drive_step = self.drive_acceleration_deg_s2 * dt
+                    drive_error = requested_drive_deg_s - self._drive_command_deg_s
+                    self._drive_command_deg_s += max(
+                        -max_drive_step, min(max_drive_step, drive_error)
                     )
+                    self.bus.write_operation_frame(
+                        self.DRIVE_NAME,
+                        0.0,
+                        0.0,
+                        self.drive_kd,
+                        math.radians(self._drive_command_deg_s),
+                        0.0,
+                    )
+                    drive_status = self.bus.read_operation_frame(self.DRIVE_NAME)
 
                     self._status.steering_deg = math.degrees(
                         steering_position - self._straight_position_rad
                     )
                     self._status.steering_target_deg = self._steering_target_deg
                     self._status.drive_speed_deg_s = math.degrees(drive_status[1])
-                    self._status.drive_target_deg_s = drive_target_deg_s
+                    self._status.drive_target_deg_s = requested_drive_deg_s
                     self._status.steering_temperature_c = steering_temp
                     self._status.drive_temperature_c = drive_status[3]
                     self._status.last_command_age_ms = round(command_age * 1000)
