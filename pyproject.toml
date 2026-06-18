@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cart-driver"
+version = "0.1.0"
+description = "Web controller for a two-motor RobStride cart"
+requires-python = ">=3.10"
+dependencies = [
+  "flask>=3.0,<4",
+  "robstride-control",
+]
+
+[project.optional-dependencies]
+test = ["pytest>=8,<9"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
