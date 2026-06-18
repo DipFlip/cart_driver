@@ -11,6 +11,7 @@ Browser-based WASD controller for a two-motor RobStride cart:
 - Motors must be explicitly connected and armed.
 - W/S is dead-man drive control; releasing the key/button commands zero speed.
 - A/D slews steering within ±60° and holds the resulting angle.
+- Steering starts and stops with a 120°/s² acceleration profile.
 - A 350 ms browser-command watchdog stops drive and steering slew.
 - STOP/disarm and server shutdown command zero drive speed and disable both motors.
 - Drive uses damped MIT velocity control with a 200°/s² command ramp.

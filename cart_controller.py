@@ -35,6 +35,10 @@ class CartController:
         drive_id: int = 2,
         steering_limit_deg: float = 60.0,
         steering_rate_deg_s: float = 45.0,
+        steering_acceleration_deg_s2: float = 120.0,
+        steering_motor_sign: int = -1,
+        steering_kp: float = 15.0,
+        steering_kd: float = 0.8,
         max_drive_speed_deg_s: float = 100.0,
         drive_acceleration_deg_s2: float = 200.0,
         drive_kd: float = 1.0,
@@ -44,6 +48,10 @@ class CartController:
         self.channel = channel
         self.steering_limit_deg = steering_limit_deg
         self.steering_rate_deg_s = steering_rate_deg_s
+        self.steering_acceleration_deg_s2 = steering_acceleration_deg_s2
+        self.steering_motor_sign = -1 if steering_motor_sign < 0 else 1
+        self.steering_kp = steering_kp
+        self.steering_kd = steering_kd
         self.max_drive_speed_deg_s = max_drive_speed_deg_s
         self.drive_acceleration_deg_s2 = drive_acceleration_deg_s2
         self.drive_kd = drive_kd
@@ -73,6 +81,7 @@ class CartController:
         self._status = CartStatus()
         self._straight_position_rad = 0.0
         self._steering_target_deg = 0.0
+        self._steering_velocity_deg_s = 0.0
         self._steering_input = 0
         self._drive_direction = 0
         self._drive_speed_setting_deg_s = max_drive_speed_deg_s
@@ -122,11 +131,12 @@ class CartController:
                 enabled.append(self.STEERING_NAME)
                 self._straight_position_rad = steering_position
                 self._steering_target_deg = 0.0
+                self._steering_velocity_deg_s = 0.0
                 self.bus.write_operation_frame(
                     self.STEERING_NAME,
                     self._straight_position_rad,
-                    15.0,
-                    0.3,
+                    self.steering_kp,
+                    self.steering_kd,
                     0.0,
                     0.0,
                 )
@@ -181,6 +191,7 @@ class CartController:
     def _disarm_locked(self) -> None:
         self._drive_direction = 0
         self._steering_input = 0
+        self._steering_velocity_deg_s = 0.0
         if not self._status.connected:
             self._status.armed = False
             return
@@ -220,6 +231,7 @@ class CartController:
         with self._lock:
             self._steering_input = 0
             self._steering_target_deg = 0.0
+            self._steering_velocity_deg_s = 0.0
             self._last_command_at = time.monotonic()
 
     def status(self) -> dict:
@@ -259,21 +271,36 @@ class CartController:
                         self._drive_direction = 0
                         self._steering_input = 0
 
-                    self._steering_target_deg += (
-                        self._steering_input * self.steering_rate_deg_s * dt
+                    requested_steering_velocity = (
+                        self._steering_input * self.steering_rate_deg_s
                     )
+                    max_steering_step = self.steering_acceleration_deg_s2 * dt
+                    steering_velocity_error = (
+                        requested_steering_velocity - self._steering_velocity_deg_s
+                    )
+                    self._steering_velocity_deg_s += max(
+                        -max_steering_step,
+                        min(max_steering_step, steering_velocity_error),
+                    )
+                    self._steering_target_deg += self._steering_velocity_deg_s * dt
                     self._steering_target_deg = max(
                         -self.steering_limit_deg,
                         min(self.steering_limit_deg, self._steering_target_deg),
                     )
+                    if (
+                        abs(self._steering_target_deg) >= self.steering_limit_deg
+                        and self._steering_target_deg * self._steering_velocity_deg_s
+                        > 0
+                    ):
+                        self._steering_velocity_deg_s = 0.0
                     steering_target_rad = self._straight_position_rad + math.radians(
-                        self._steering_target_deg
+                        self._steering_target_deg * self.steering_motor_sign
                     )
                     self.bus.write_operation_frame(
                         self.STEERING_NAME,
                         steering_target_rad,
-                        15.0,
-                        0.3,
+                        self.steering_kp,
+                        self.steering_kd,
                         0.0,
                         0.0,
                     )
@@ -301,7 +328,7 @@ class CartController:
 
                     self._status.steering_deg = math.degrees(
                         steering_position - self._straight_position_rad
-                    )
+                    ) * self.steering_motor_sign
                     self._status.steering_target_deg = self._steering_target_deg
                     self._status.drive_speed_deg_s = math.degrees(drive_status[1])
                     self._status.drive_target_deg_s = requested_drive_deg_s
