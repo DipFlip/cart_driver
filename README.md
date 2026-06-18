@@ -14,7 +14,7 @@ Browser-based WASD controller for a two-motor RobStride cart:
 - A/D slews vehicle steering at up to 450°/s within ±60°.
 - Manual steering uses a 9,000°/s² vehicle-side acceleration profile.
 - **Set center here** records the current motor-1 position as vehicle-straight.
-- Steering target lead is limited to 5° vehicle-side (10° at the motor).
+- Steering response is governed by speed, acceleration, and the ±60° range.
 - Center steering returns separately at up to 30°/s with a gentle acceleration.
 - Idle steering drops to Kp=3/Kd=0.2 and releases corrective torque inside a 0.75° deadband.
 - Idle drive uses Kp=0/Kd=0 after its speed command reaches zero.

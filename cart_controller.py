@@ -45,7 +45,6 @@ class CartController:
         steering_hold_kp: float = 3.0,
         steering_hold_kd: float = 0.2,
         steering_deadband_deg: float = 0.75,
-        steering_target_lead_deg: float = 5.0,
         max_drive_speed_deg_s: float = 500.0,
         drive_acceleration_deg_s2: float = 1_000.0,
         drive_kd: float = 1.0,
@@ -69,7 +68,6 @@ class CartController:
         self.steering_hold_kp = steering_hold_kp
         self.steering_hold_kd = steering_hold_kd
         self.steering_deadband_deg = steering_deadband_deg
-        self.steering_target_lead_deg = steering_target_lead_deg
         self.max_drive_speed_deg_s = max_drive_speed_deg_s
         self.drive_acceleration_deg_s2 = drive_acceleration_deg_s2
         self.drive_kd = drive_kd
@@ -383,19 +381,6 @@ class CartController:
                         min(max_steering_step, steering_velocity_error),
                     )
                     self._steering_target_deg += self._steering_velocity_deg_s * dt
-                    self._steering_target_deg = max(
-                        -self.steering_limit_deg,
-                        min(self.steering_limit_deg, self._steering_target_deg),
-                    )
-                    self._steering_target_deg = max(
-                        self._steering_feedback_deg
-                        - self.steering_target_lead_deg,
-                        min(
-                            self._steering_feedback_deg
-                            + self.steering_target_lead_deg,
-                            self._steering_target_deg,
-                        ),
-                    )
                     self._steering_target_deg = max(
                         -self.steering_limit_deg,
                         min(self.steering_limit_deg, self._steering_target_deg),
