@@ -36,7 +36,7 @@ class CartController:
         steering_gear_ratio: float = 2.0,
         steering_limit_deg: float = 60.0,
         steering_rate_deg_s: float = 225.0,
-        steering_acceleration_deg_s2: float = 4_500.0,
+        steering_acceleration_deg_s2: float = 2_250.0,
         steering_center_rate_deg_s: float = 30.0,
         steering_center_acceleration_deg_s2: float = 90.0,
         steering_motor_sign: int = -1,

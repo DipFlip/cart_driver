@@ -63,7 +63,7 @@ def test_controller_speed_defaults():
     assert controller.max_drive_speed_deg_s == 500.0
     assert controller.steering_gear_ratio == 2.0
     assert controller.steering_rate_deg_s == 225.0
-    assert controller.steering_acceleration_deg_s2 == 4_500.0
+    assert controller.steering_acceleration_deg_s2 == 2_250.0
     assert controller.steering_center_rate_deg_s == 30.0
     assert controller.drive_acceleration_deg_s2 == 1_000.0
 
