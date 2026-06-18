@@ -41,6 +41,9 @@ class CartController:
         steering_motor_sign: int = -1,
         steering_kp: float = 8.0,
         steering_kd: float = 0.8,
+        steering_hold_kp: float = 3.0,
+        steering_hold_kd: float = 0.2,
+        steering_deadband_deg: float = 0.75,
         steering_target_lead_deg: float = 10.0,
         max_drive_speed_deg_s: float = 500.0,
         drive_acceleration_deg_s2: float = 1_000.0,
@@ -59,6 +62,9 @@ class CartController:
         self.steering_motor_sign = -1 if steering_motor_sign < 0 else 1
         self.steering_kp = steering_kp
         self.steering_kd = steering_kd
+        self.steering_hold_kp = steering_hold_kp
+        self.steering_hold_kd = steering_hold_kd
+        self.steering_deadband_deg = steering_deadband_deg
         self.steering_target_lead_deg = steering_target_lead_deg
         self.max_drive_speed_deg_s = max_drive_speed_deg_s
         self.drive_acceleration_deg_s2 = drive_acceleration_deg_s2
@@ -258,6 +264,25 @@ class CartController:
                 )
             return asdict(self._status)
 
+    def _steering_gains(self) -> tuple[float, float]:
+        actively_moving = (
+            self._steering_input != 0
+            or self._centering_steering
+            or abs(self._steering_velocity_deg_s) > 0.5
+        )
+        if actively_moving:
+            return self.steering_kp, self.steering_kd
+
+        position_error = self._steering_target_deg - self._steering_feedback_deg
+        if abs(position_error) <= self.steering_deadband_deg:
+            return 0.0, 0.0
+        return self.steering_hold_kp, self.steering_hold_kd
+
+    def _drive_damping(self) -> float:
+        if self._drive_direction == 0 and abs(self._drive_command_deg_s) < 0.5:
+            return 0.0
+        return self.drive_kd
+
     def close(self) -> None:
         self._stop_event.set()
         thread = self._thread
@@ -348,11 +373,12 @@ class CartController:
                     steering_target_rad = self._straight_position_rad + math.radians(
                         self._steering_target_deg * self.steering_motor_sign
                     )
+                    steering_kp, steering_kd = self._steering_gains()
                     self.bus.write_operation_frame(
                         self.STEERING_NAME,
                         steering_target_rad,
-                        self.steering_kp,
-                        self.steering_kd,
+                        steering_kp,
+                        steering_kd,
                         0.0,
                         0.0,
                     )
@@ -372,7 +398,7 @@ class CartController:
                         self.DRIVE_NAME,
                         0.0,
                         0.0,
-                        self.drive_kd,
+                        self._drive_damping(),
                         math.radians(self._drive_command_deg_s),
                         0.0,
                     )

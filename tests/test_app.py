@@ -58,3 +58,24 @@ def test_controller_speed_defaults():
     assert controller.steering_acceleration_deg_s2 == 4_500.0
     assert controller.steering_center_rate_deg_s == 30.0
     assert controller.drive_acceleration_deg_s2 == 1_000.0
+
+
+def test_idle_control_profiles():
+    controller = CartController()
+
+    controller._steering_target_deg = 10.0
+    controller._steering_feedback_deg = 9.5
+    assert controller._steering_gains() == (0.0, 0.0)
+
+    controller._steering_feedback_deg = 8.0
+    assert controller._steering_gains() == (3.0, 0.2)
+
+    controller._steering_input = 1
+    assert controller._steering_gains() == (8.0, 0.8)
+
+    controller._drive_direction = 0
+    controller._drive_command_deg_s = 0.0
+    assert controller._drive_damping() == 0.0
+
+    controller._drive_command_deg_s = 10.0
+    assert controller._drive_damping() == 1.0
