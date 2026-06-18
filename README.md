@@ -11,8 +11,8 @@ Browser-based WASD controller for a two-motor RobStride cart:
 
 - Motors must be explicitly connected and armed.
 - W/S is dead-man drive control; releasing the key/button commands zero speed.
-- A/D slews vehicle steering at up to 225°/s within ±60°.
-- Manual steering uses a 500°/s² vehicle-side acceleration profile.
+- A/D slews vehicle steering at up to 100°/s within ±60°.
+- Manual steering uses a 250°/s² vehicle-side acceleration profile.
 - **Set center here** records the current motor-1 position as vehicle-straight.
 - Steering response is governed by speed, acceleration, and the ±60° range.
 - Center steering returns separately at up to 30°/s with a gentle acceleration.
