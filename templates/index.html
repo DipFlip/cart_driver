@@ -65,9 +65,9 @@
 
         <aside class="panel settings-panel">
           <p class="eyebrow">DRIVE SPEED</p>
-          <div class="speed-value"><span id="speedValue">100</span><small>°/s</small></div>
-          <input id="speedSlider" type="range" min="0" max="100" value="100" step="5">
-          <div class="range-labels"><span>0</span><span>100</span></div>
+          <div class="speed-value"><span id="speedValue">250</span><small>°/s</small></div>
+          <input id="speedSlider" type="range" min="0" max="500" value="250" step="25">
+          <div class="range-labels"><span>0</span><span>500</span></div>
 
           <div class="actions">
             <button id="connectButton" class="secondary">Connect</button>
@@ -82,6 +82,6 @@
         Drive stops automatically on key release, browser disconnect, or control timeout.
       </footer>
     </main>
-    <script src="{{ url_for('static', filename='app.js') }}"></script>
+    <script src="{{ url_for('static', filename='app.js', v='5') }}"></script>
   </body>
 </html>

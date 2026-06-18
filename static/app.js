@@ -2,7 +2,7 @@ const state = {
   keys: new Set(),
   drive: 0,
   steer: 0,
-  speed: 100,
+  speed: 250,
   connected: false,
   armed: false,
 };

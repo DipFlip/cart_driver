@@ -1,4 +1,5 @@
 from app import create_app
+from cart_controller import CartController
 
 
 class FakeController:
@@ -48,3 +49,10 @@ def test_control_api():
     assert response.status_code == 200
     assert controller.controls == (1, -1, 75)
     assert not client.post("/api/disarm").get_json()["armed"]
+
+
+def test_controller_speed_defaults():
+    controller = CartController()
+    assert controller.max_drive_speed_deg_s == 500.0
+    assert controller.steering_rate_deg_s == 225.0
+    assert controller.steering_center_rate_deg_s == 30.0
