@@ -1,0 +1,20 @@
+[Unit]
+Description=RobStride Cart Driver Web UI
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=emil
+Group=emil
+SupplementaryGroups=dialout
+WorkingDirectory=/home/emil/repos/cart_driver
+Environment=PYTHONUNBUFFERED=1
+Environment=ROBSTRIDE_PORT=/dev/ttyUSB0
+ExecStart=/home/emil/repos/cart_driver/.venv/bin/gunicorn --workers 1 --threads 4 --bind 0.0.0.0:5000 --access-logfile - --error-logfile - app:app
+Restart=on-failure
+RestartSec=2
+TimeoutStopSec=5
+
+[Install]
+WantedBy=multi-user.target

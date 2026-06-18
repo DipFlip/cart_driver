@@ -33,3 +33,17 @@ ROBSTRIDE_PORT=/dev/ttyUSB1 .venv/bin/python app.py
 ```
 
 Keep the cart lifted or otherwise restrained during initial testing.
+
+## Run as a service
+
+```bash
+sudo install -m 0644 cart-driver.service /etc/systemd/system/cart-driver.service
+sudo systemctl daemon-reload
+sudo systemctl enable --now cart-driver.service
+```
+
+Inspect logs with:
+
+```bash
+journalctl -u cart-driver.service -f
+```
